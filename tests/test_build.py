@@ -16,7 +16,8 @@ class BuildTest(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         out = Path(cls.tmp.name) / "kaiwa-dict.sqlite"
-        build.build(FIX / "JMdict.xml", FIX / "kanjidic2.xml", FIX / "accents.txt", out, "9.9.9")
+        build.build(FIX / "JMdict.xml", FIX / "kanjidic2.xml", FIX / "accents.txt", out, "9.9.9",
+                    FIX / "JMnedict.xml", FIX / "tanos")
         cls.db = sqlite3.connect(out)
 
     @classmethod
@@ -36,9 +37,11 @@ class BuildTest(unittest.TestCase):
 
     def test_every_source_has_licence_and_attribution(self):
         rows = self.q("SELECT id, licence, attribution FROM source ORDER BY id")
-        self.assertEqual([r[0] for r in rows], ["jmdict", "kanjidic2", "kanjium"])
-        for _, licence, attribution in rows:
-            self.assertEqual(licence, "CC BY-SA 4.0")
+        self.assertEqual([r[0] for r in rows],
+                         ["jmdict", "jmnedict", "kanjidic2", "kanjium", "tanos"])
+        for id_, licence, attribution in rows:
+            # tanos is CC BY (confirmed in the web archive, Kaiwa L-09), the rest CC BY-SA.
+            self.assertEqual(licence, "CC BY" if id_ == "tanos" else "CC BY-SA 4.0")
             self.assertTrue(attribution)
         created = dict(self.q("SELECT id, created FROM source"))
         self.assertRegex(created["jmdict"], r"^\d{4}-\d{2}-\d{2}$")
@@ -90,6 +93,33 @@ class BuildTest(unittest.TestCase):
         self.assertIn("ショク", json.loads(on))
         self.assertIn("た.べる", json.loads(kun))
         self.assertEqual(json.loads(meanings), ["eat", "food"])
+
+
+    # Names (JMnedict) and JLPT levels (tanos), schema 2.
+    def test_names_have_kind_and_reading(self):
+        rows = self.q("SELECT reading, types, trans FROM name WHERE kanji = '田中'")
+        self.assertIn("たなか", [r[0] for r in rows])
+        types = json.loads(rows[0][1])
+        self.assertIn("surname", types)
+        self.assertEqual(rows[0][2], "Tanaka")
+        [(desc,)] = self.q("SELECT description FROM entity WHERE code = 'surname'")
+        self.assertIn("surname", desc)
+
+    def test_kana_only_names_have_no_kanji(self):
+        self.assertTrue(self.q("SELECT 1 FROM name WHERE kanji IS NULL"))
+
+    def test_tanos_levels_come_from_the_pages(self):
+        levels = {r[0] for r in self.q("SELECT DISTINCT level FROM jlpt")}
+        self.assertEqual(levels, {1, 2, 3, 4, 5})
+        self.assertEqual(self.q("SELECT level FROM jlpt WHERE word = '会う'"), [(5,)])
+        for (reading,) in self.q("SELECT reading FROM jlpt"):
+            self.assertRegex(reading, "^[\u3040-\u30ffー]+$")
+
+    def test_reading_variants_are_split(self):
+        rows = list(build.tanos_rows(
+            "<tr><td>〜方</td><td>かた、がた</td><td>way</td></tr>"
+            "<tr><td></td><td>ああ</td><td>ah</td></tr>"))
+        self.assertEqual(rows, [("方", "かた"), ("方", "がた"), ("ああ", "ああ")])
 
 
 if __name__ == "__main__":
