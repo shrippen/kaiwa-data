@@ -266,18 +266,18 @@ KANA = re.compile(r"^[\u3040-\u30ffー]+$")
 
 def tanos_rows(page: str):
     """(word, reading) from a tanos vocabulary page: the cells kanji/kana, reading, English.
-    A reading cell may hold variants (、 or ・); words with 〜 lose it."""
+    Both cells may hold variants (、 ・ / or spaces: なん/なに, 見る  観る); 〜 is dropped."""
     import html
     for tr in TANOS_ROW.findall(page):
         cells = [html.unescape(re.sub(r"<[^>]+>", "", c)).strip() for c in TANOS_CELL.findall(tr)]
         if len(cells) != 3:
             continue
         word, readings = cells[0].strip("〜～ "), cells[1]
-        for reading in re.split(r"[、・,]\s*", readings):
+        for reading in re.split(r"[、・,/／\s]+", readings):
             reading = reading.strip("〜～ ")
             if not KANA.match(reading):
                 continue
-            for w in (re.split(r"[、・,]\s*", word) if word else [reading]):
+            for w in (re.split(r"[、・,/／\s]+", word) if word else [reading]):
                 w = w.strip("〜～ ")
                 if w:
                     yield w, reading

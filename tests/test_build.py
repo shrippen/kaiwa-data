@@ -118,8 +118,11 @@ class BuildTest(unittest.TestCase):
     def test_reading_variants_are_split(self):
         rows = list(build.tanos_rows(
             "<tr><td>〜方</td><td>かた、がた</td><td>way</td></tr>"
-            "<tr><td></td><td>ああ</td><td>ah</td></tr>"))
-        self.assertEqual(rows, [("方", "かた"), ("方", "がた"), ("ああ", "ああ")])
+            "<tr><td></td><td>ああ</td><td>ah</td></tr>"
+            "<tr><td>何</td><td>なん/なに</td><td>what</td></tr>"
+            "<tr><td>見る  観る</td><td>みる</td><td>to see</td></tr>"))
+        self.assertEqual(rows, [("方", "かた"), ("方", "がた"), ("ああ", "ああ"),
+                                ("何", "なん"), ("何", "なに"), ("見る", "みる"), ("観る", "みる")])
 
 
 if __name__ == "__main__":
