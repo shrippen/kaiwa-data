@@ -1,0 +1,22 @@
+kaiwa-data: language data for Kaiwa (https://github.com/shrippen/kaiwa-data)
+
+The database kaiwa-dict.sqlite is licensed under the Creative Commons
+Attribution-ShareAlike 4.0 International licence (CC BY-SA 4.0, see LICENSE-DATA).
+It is derived from:
+
+- JMdict, the Japanese-Multilingual Dictionary, and KANJIDIC2.
+  These files are the property of the Electronic Dictionary Research and
+  Development Group (EDRDG) and are used in conformance with the Group's licence.
+  https://www.edrdg.org/edrdg/licence.html
+  Of JMdict only the English and German glosses are included; the German glosses
+  come from the JMdict German translations.
+
+- Kanjium pitch accent data (accents.txt) by Uros Ozvatic,
+  https://github.com/mifunetoshiro/kanjium, CC BY-SA 4.0; partly derived from
+  EDRDG data.
+
+Changes: the sources were converted to SQLite, reduced to the fields Kaiwa uses
+(see README.md), and full-width digits in accent entries were normalised (NFKC).
+The date of each source is stored in the table `source` of the database.
+
+The build scripts (build.py, fetch.sh, package.sh, tests) are MIT licensed (LICENSE).

@@ -1,0 +1,50 @@
+# Release: builds the data package from the current sources and attaches it to the GitHub
+# release of the tag. Only on GitHub (release artefacts are built and attached by GitHub
+# Actions only); the tag comes from Gitea through the push mirror.
+name: Release
+
+on:
+  push:
+    tags: ["v*"]
+
+concurrency:
+  group: release-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+
+jobs:
+  package:
+    if: github.server_url == 'https://github.com'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test
+        run: python3 -m unittest discover -s tests -t .
+      - name: Fetch sources
+        run: ./fetch.sh
+      - name: Build
+        run: ./package.sh "${GITHUB_REF_NAME#v}"
+      - name: Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          v="${GITHUB_REF_NAME#v}"
+          f="dist/kaiwa-data-$v.tar.bz2"
+          db="dist/kaiwa-data-$v/kaiwa-dict.sqlite"
+          {
+            echo "Language data for Kaiwa, version $v (CC BY-SA 4.0, see NOTICE)."
+            echo
+            echo "| File | Bytes | SHA-256 |"
+            echo "|---|---|---|"
+            echo "| \`$(basename "$f")\` | $(stat -c %s "$f") | \`$(cut -d' ' -f1 "$f.sha256")\` |"
+            echo
+            echo "Unpacked database: $(stat -c %s "$db") bytes."
+            echo
+            echo "| Source | Date | Licence |"
+            echo "|---|---|---|"
+            python3 -c "import sqlite3,sys; [print(f'| {n} | {c or \"(no date in source)\"} | {l} |') for n,c,l in sqlite3.connect(sys.argv[1]).execute('SELECT name, created, licence FROM source')]" "$db"
+          } > notes.md
+          gh release create "$GITHUB_REF_NAME" "$f" "$f.sha256" \
+            --title "kaiwa-data $v" --notes-file notes.md
