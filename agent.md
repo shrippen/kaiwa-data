@@ -8,6 +8,8 @@ JMdict, KANJIDIC2 and Kanjium accents as one SQLite file.
 - A change Kaiwa's reader must follow raises `SCHEMA_VERSION` in build.py and the table in README.md.
 - This repository lives on Gitea (`git.arianw.de`); GitHub is its push mirror. Work on a branch,
   open a PR on Gitea, merge there after green CI.
+- CI runs on the GitHub mirror (`.github/workflows/ci.yml`, since 16.10.2026) and reports back to
+  Gitea as the commit status `github / test`.
 - Releases: push a tag `v<version>` on Gitea. The mirror carries it to GitHub, where
   `.github/workflows/release.yml` builds the package and attaches it with its SHA-256. The Gitea
   release gets the tag and notes only. After a release, pin size and SHA-256 in Kaiwa
